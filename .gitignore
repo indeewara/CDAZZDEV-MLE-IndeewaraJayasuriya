@@ -1,0 +1,8 @@
+.env
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+# Task 2 training artefacts (GBs) - the merged model lives on the Hugging Face Hub instead
+task2_genai/outputs/qlora-run/
+task2_genai/outputs/adapter/
+task2_genai/outputs/merged/

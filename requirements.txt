@@ -1,0 +1,20 @@
+yfinance
+pandas
+numpy
+feedparser
+pydantic
+groq
+matplotlib
+python-dotenv
+pytest
+markdown
+# Task 2 (fine-tuning) - pinned: these APIs change between releases
+transformers==5.18.0
+trl==1.14.1
+peft==0.21.2
+accelerate==1.15.0
+datasets==5.1.0
+jinja2
+bitsandbytes>=0.45; platform_system == "Linux"
+rouge-score
+bert-score

@@ -1,0 +1,63 @@
+2026-10-06 10:38:33,293 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 10:38:34,090 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 11:08:48,433 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 11:08:49,270 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 11:59:19,054 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 11:59:19,995 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 12:16:51,703 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 12:16:52,496 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 12:17:08,686 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 12:17:09,507 INFO data_pipeline: After google_news_rss: 93 unique headlines
+2026-10-06 12:17:11,760 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 3.000000 seconds
+2026-10-06 12:17:15,546 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 3.000000 seconds
+2026-10-06 12:17:19,383 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 1.000000 seconds
+2026-10-06 12:17:21,017 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 3.000000 seconds
+2026-10-06 12:17:25,341 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 1.000000 seconds
+2026-10-06 12:17:29,658 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 1.000000 seconds
+2026-10-06 12:17:31,542 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 1.000000 seconds
+2026-10-06 12:17:33,627 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 5.000000 seconds
+2026-10-06 12:17:41,592 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 5.000000 seconds
+2026-10-06 12:17:46,659 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 7.000000 seconds
+2026-10-06 13:09:18,632 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 13:09:19,608 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 13:10:27,323 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 13:10:27,778 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 13:26:12,363 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 13:26:13,230 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 13:26:13,992 ERROR yfinance: HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: NOTAREALTICKER123"}}}
+2026-10-06 13:26:14,362 ERROR yfinance: $NOTAREALTICKER123: No data found, symbol may be delisted
+2026-10-06 13:26:14,369 ERROR data_pipeline: No usable OHLCV data for NOTAREALTICKER123 (bad ticker, delisted, or all-null Close)
+2026-10-06 13:26:25,697 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 5.000000 seconds
+2026-10-06 13:26:30,782 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 6.000000 seconds
+2026-10-06 13:26:39,689 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 13.000000 seconds
+2026-10-06 13:26:55,279 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 12.000000 seconds
+2026-10-06 13:27:09,223 WARNING llm_reasoning: Validation failed (attempt 1/3) for HeadlineSentiment: [{'type': 'literal_error', 'loc': ('sentiment',), 'msg': "Input should be 'positive', 'negative' or 'neutral'", 'input': 'bullish', 'ctx': {'expected': "'positive', 'negative' or 'neutral'"}}, {'type': 'less_than_equal', 'loc': ('confidence',), 'msg': 'Input should be less than or equal to 1', 'input': 1.7, 'ctx': {'le': 1.0}}, {'type': 'string_too_short', 'loc': ('brief_reason',), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}] | raw='{"headline": "DEMO", "sentiment": "bullish", "confidence": 1.7, "brief_reason": ""}'
+2026-10-06 13:27:09,224 WARNING llm_reasoning: Validation failed (attempt 1/3) for HeadlineSentiment: [{'type': 'json_invalid', 'loc': (), 'msg': 'Invalid JSON: expected ident at line 1 column 2', 'input': 'not json', 'ctx': {'error': 'expected ident at line 1 column 2'}}] | raw='not json'
+2026-10-06 13:27:09,228 WARNING llm_reasoning: Validation failed (attempt 2/3) for HeadlineSentiment: [{'type': 'missing', 'loc': ('headline',), 'msg': 'Field required', 'input': {}}, {'type': 'missing', 'loc': ('sentiment',), 'msg': 'Field required', 'input': {}}, {'type': 'missing', 'loc': ('confidence',), 'msg': 'Field required', 'input': {}}, {'type': 'missing', 'loc': ('brief_reason',), 'msg': 'Field required', 'input': {}}] | raw='{}'
+2026-10-06 13:27:09,229 WARNING llm_reasoning: Validation failed (attempt 3/3) for HeadlineSentiment: [{'type': 'literal_error', 'loc': ('sentiment',), 'msg': "Input should be 'positive', 'negative' or 'neutral'", 'input': 'bullish', 'ctx': {'expected': "'positive', 'negative' or 'neutral'"}}, {'type': 'less_than_equal', 'loc': ('confidence',), 'msg': 'Input should be less than or equal to 1', 'input': 1.7, 'ctx': {'le': 1.0}}, {'type': 'string_too_short', 'loc': ('brief_reason',), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}] | raw='{"headline": "DEMO", "sentiment": "bullish", "confidence": 1.7, "brief_reason": ""}'
+2026-10-06 13:27:09,229 ERROR llm_reasoning: Giving up after 3 attempts: DEMO scripted reply
+2026-10-06 13:28:26,638 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 13:28:27,503 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 13:28:28,078 ERROR yfinance: HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: NOTAREALTICKER123"}}}
+2026-10-06 13:28:28,451 ERROR yfinance: $NOTAREALTICKER123: No data found, symbol may be delisted
+2026-10-06 13:28:28,453 ERROR data_pipeline: No usable OHLCV data for NOTAREALTICKER123 (bad ticker, delisted, or all-null Close)
+2026-10-06 13:28:46,747 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 1.000000 seconds
+2026-10-06 13:28:49,906 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 11.000000 seconds
+2026-10-06 13:29:02,713 WARNING llm_reasoning: Validation failed (attempt 1/3) for HeadlineSentiment: [{'type': 'literal_error', 'loc': ('sentiment',), 'msg': "Input should be 'positive', 'negative' or 'neutral'", 'input': 'bullish', 'ctx': {'expected': "'positive', 'negative' or 'neutral'"}}, {'type': 'less_than_equal', 'loc': ('confidence',), 'msg': 'Input should be less than or equal to 1', 'input': 1.7, 'ctx': {'le': 1.0}}, {'type': 'string_too_short', 'loc': ('brief_reason',), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}] | raw='{"headline": "DEMO", "sentiment": "bullish", "confidence": 1.7, "brief_reason": ""}'
+2026-10-06 13:29:02,715 WARNING llm_reasoning: Validation failed (attempt 1/3) for HeadlineSentiment: [{'type': 'json_invalid', 'loc': (), 'msg': 'Invalid JSON: expected ident at line 1 column 2', 'input': 'not json', 'ctx': {'error': 'expected ident at line 1 column 2'}}] | raw='not json'
+2026-10-06 13:29:02,715 WARNING llm_reasoning: Validation failed (attempt 2/3) for HeadlineSentiment: [{'type': 'missing', 'loc': ('headline',), 'msg': 'Field required', 'input': {}}, {'type': 'missing', 'loc': ('sentiment',), 'msg': 'Field required', 'input': {}}, {'type': 'missing', 'loc': ('confidence',), 'msg': 'Field required', 'input': {}}, {'type': 'missing', 'loc': ('brief_reason',), 'msg': 'Field required', 'input': {}}] | raw='{}'
+2026-10-06 13:29:02,716 WARNING llm_reasoning: Validation failed (attempt 3/3) for HeadlineSentiment: [{'type': 'literal_error', 'loc': ('sentiment',), 'msg': "Input should be 'positive', 'negative' or 'neutral'", 'input': 'bullish', 'ctx': {'expected': "'positive', 'negative' or 'neutral'"}}, {'type': 'less_than_equal', 'loc': ('confidence',), 'msg': 'Input should be less than or equal to 1', 'input': 1.7, 'ctx': {'le': 1.0}}, {'type': 'string_too_short', 'loc': ('brief_reason',), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}] | raw='{"headline": "DEMO", "sentiment": "bullish", "confidence": 1.7, "brief_reason": ""}'
+2026-10-06 13:29:02,716 ERROR llm_reasoning: Giving up after 3 attempts: DEMO scripted reply
+2026-10-06 13:35:40,151 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 13:35:41,310 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 13:35:55,860 INFO data_pipeline: After yfinance: 0 unique headlines
+2026-10-06 13:35:56,298 INFO data_pipeline: After google_news_rss: 99 unique headlines
+2026-10-06 13:35:57,950 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 2.000000 seconds
+2026-10-06 13:36:00,933 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 1.000000 seconds
+2026-10-06 13:36:02,722 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 3.000000 seconds
+2026-10-06 13:36:06,480 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 3.000000 seconds
+2026-10-06 13:36:10,313 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 3.000000 seconds
+2026-10-06 13:36:14,850 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 5.000000 seconds
+2026-10-06 13:36:20,645 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 3.000000 seconds
+2026-10-06 13:36:24,426 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 6.000000 seconds
+2026-10-06 13:36:32,959 INFO groq._base_client: Retrying request to /openai/v1/chat/completions in 13.000000 seconds

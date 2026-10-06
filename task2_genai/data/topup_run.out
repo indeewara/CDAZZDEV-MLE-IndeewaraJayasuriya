@@ -1,0 +1,36 @@
+2026-10-06 18:41:00,869 INFO generate: 40/48 batches cached, 8 to go
+2026-10-06 18:41:25,160 INFO generate: batch 1/8 -> 6 items (total 246)
+2026-10-06 18:41:50,312 INFO generate: batch 2/8 -> 6 items (total 252)
+2026-10-06 18:42:14,979 INFO generate: batch 3/8 -> 6 items (total 258)
+2026-10-06 18:42:39,976 INFO generate: batch 4/8 -> 6 items (total 264)
+2026-10-06 18:43:04,750 INFO generate: batch 5/8 -> 6 items (total 270)
+2026-10-06 18:43:29,164 INFO generate: batch 6/8 -> 6 items (total 276)
+2026-10-06 18:43:53,931 INFO generate: batch 7/8 -> 6 items (total 282)
+2026-10-06 18:44:12,331 INFO generate: batch 8/8 -> 3 items (total 285)
+2026-10-06 18:44:12,338 INFO label: 240 cached, 45 to go
+2026-10-06 18:44:33,401 INFO label: 8/45
+2026-10-06 18:44:52,979 INFO label: 16/45
+2026-10-06 18:45:13,332 INFO label: 24/45
+2026-10-06 18:45:37,354 INFO label: 32/45
+2026-10-06 18:45:55,566 INFO label: 40/45
+2026-10-06 18:46:11,122 INFO label: 45/45
+{
+  "planned_specs": 285,
+  "split_sizes": {
+    "train": 139,
+    "val": 21,
+    "test": 21
+  },
+  "rejected": {
+    "ungrounded": 14,
+    "blind_disagrees": 82,
+    "near_duplicate": 8
+  },
+  "blind_magnitude_exact_agreement": 0.63,
+  "distinct_2": 0.672,
+  "nearest_neighbour_similarity": {
+    "mean": 0.17,
+    "p95": 0.262,
+    "max": 0.428
+  }
+}

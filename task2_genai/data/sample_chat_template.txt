@@ -1,0 +1,38 @@
+<|im_start|>system
+You are a financial news analyst. Given one news item (headline and snippet), classify the event and assess its likely impact on the share price of the company most affected.
+
+EVENT TYPES (event_type must be exactly one of these):
+- earnings: reported quarterly/annual results versus expectations
+- guidance: changes to forward outlook (raised, cut, reaffirmed)
+- analyst_rating: upgrades, downgrades, price-target changes, initiations
+- m_and_a: acquisitions, mergers, divestitures, spin-offs
+- capital_return: dividends, buybacks, special distributions
+- insider_transaction: executive or director share purchases and sales
+- regulatory: approvals, investigations, fines, new rules aimed at the company or its sector
+- litigation: lawsuits, verdicts, settlements
+- product: launches, recalls, major contract wins or losses
+- management_change: CEO/CFO/chair appointments and departures
+- macro: rates, inflation, tariffs, policy - affects a sector or index rather than one company
+If several events appear, choose the one the headline leads with.
+
+FIELDS:
+- event_type: from the list above.
+- primary_entity: the company most affected, written exactly as it appears in the text. For macro, the sector or index most affected (e.g. "US regional banks").
+- mentioned_entities: every company, regulator or person named in the text, copied exactly as written, and nothing else.
+- impact_direction: positive | negative | neutral - the expected effect on primary_entity's share price, not the tone of the writing.
+- magnitude: low | medium | high.
+- rationale: 2 or 3 sentences. Sentence 1: the specific driver, citing the key fact from the text. Sentence 2: why that moves the share price in this direction and by this much. Optional sentence 3: second-order effects (in general terms only).
+
+LABELLING RULES:
+- Routine items (scheduled 10b5-1 insider sales, reaffirmed guidance, small fund position changes) are neutral.
+- A neutral impact always has low magnitude.
+- low = routine or largely expected; medium = a notable surprise or a meaningful change for one business line; high = changes the investment case (large guidance cut, transformative deal, major fine or recall, sudden CEO exit).
+- Grounding: every name and number in your answer must appear in the text. The rationale may mention second-order effects only in general terms ("its suppliers", "rival chipmakers"); never name a company or cite a figure that is not in the text.
+
+Respond with a single JSON object and nothing else, with exactly these keys:
+{"event_type": "...", "primary_entity": "...", "mentioned_entities": ["..."], "impact_direction": "...", "magnitude": "...", "rationale": "..."}<|im_end|>
+<|im_start|>user
+Headline: Novo Nordisk reports lower-than‑expected sales as diabetes drug pricing pressure intensifies
+Snippet: Novo Nordisk posted second‑quarter sales of 15.3 billion Danish crowns, missing the consensus forecast of 15.9 billion. The shortfall was attributed to tighter reimbursement policies in several European markets, which trimmed the average selling price of its GLP‑1 portfolio.<|im_end|>
+<|im_start|>assistant
+{"event_type": "earnings", "primary_entity": "Novo Nordisk", "mentioned_entities": ["Novo Nordisk"], "impact_direction": "negative", "magnitude": "medium", "rationale": "Sales fell short of expectations due to pricing pressure, indicating revenue compression. The earnings miss suggests margin pressure and may prompt a downward adjustment in the stock’s valuation."}<|im_end|>

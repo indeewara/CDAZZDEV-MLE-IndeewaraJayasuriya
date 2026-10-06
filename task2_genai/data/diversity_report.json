@@ -1,0 +1,391 @@
+{
+  "split_sizes": {
+    "train": 149,
+    "val": 18,
+    "test": 18
+  },
+  "total": 185,
+  "counts": {
+    "event_type": {
+      "earnings": 21,
+      "analyst_rating": 19,
+      "product": 18,
+      "guidance": 18,
+      "regulatory": 18,
+      "capital_return": 17,
+      "m_and_a": 16,
+      "litigation": 16,
+      "management_change": 15,
+      "macro": 15,
+      "insider_transaction": 12
+    },
+    "sector": {
+      "industrials": 21,
+      "technology": 21,
+      "autos": 20,
+      "telecom_media": 20,
+      "banking": 19,
+      "energy": 19,
+      "consumer_retail": 18,
+      "semiconductors": 17,
+      "pharma": 16,
+      "utilities": 14
+    },
+    "region": {
+      "US": 87,
+      "Europe": 56,
+      "Asia": 42
+    },
+    "impact_direction": {
+      "positive": 74,
+      "negative": 72,
+      "neutral": 39
+    },
+    "magnitude": {
+      "low": 81,
+      "medium": 52,
+      "high": 52
+    },
+    "style": {
+      "breaking-news alert": 48,
+      "wire-service brief": 47,
+      "analyst-note summary": 47,
+      "press-release excerpt": 43
+    }
+  },
+  "unique_companies": 50,
+  "prompt_length_words": {
+    "min": 39,
+    "p25": 51.0,
+    "median": 54.0,
+    "p75": 58.0,
+    "max": 71,
+    "mean": 54.6,
+    "values": [
+      52,
+      70,
+      47,
+      58,
+      57,
+      48,
+      63,
+      59,
+      57,
+      51,
+      54,
+      52,
+      56,
+      49,
+      49,
+      58,
+      47,
+      52,
+      56,
+      54,
+      57,
+      52,
+      47,
+      59,
+      52,
+      46,
+      65,
+      53,
+      58,
+      55,
+      58,
+      58,
+      48,
+      51,
+      54,
+      57,
+      47,
+      54,
+      59,
+      57,
+      50,
+      55,
+      63,
+      57,
+      52,
+      68,
+      53,
+      56,
+      51,
+      51,
+      41,
+      61,
+      51,
+      66,
+      55,
+      64,
+      54,
+      65,
+      53,
+      64,
+      49,
+      60,
+      55,
+      46,
+      49,
+      61,
+      56,
+      48,
+      53,
+      58,
+      57,
+      52,
+      53,
+      58,
+      53,
+      46,
+      51,
+      53,
+      54,
+      70,
+      59,
+      59,
+      46,
+      55,
+      46,
+      57,
+      63,
+      55,
+      53,
+      63,
+      51,
+      69,
+      57,
+      56,
+      55,
+      65,
+      54,
+      55,
+      46,
+      62,
+      54,
+      47,
+      51,
+      57,
+      59,
+      56,
+      41,
+      62,
+      44,
+      52,
+      48,
+      58,
+      59,
+      58,
+      53,
+      60,
+      60,
+      63,
+      55,
+      60,
+      48,
+      69,
+      43,
+      42,
+      59,
+      53,
+      63,
+      52,
+      55,
+      49,
+      52,
+      51,
+      64,
+      50,
+      58,
+      59,
+      42,
+      55,
+      57,
+      49,
+      41,
+      55,
+      39,
+      59,
+      57,
+      51,
+      46,
+      47,
+      54,
+      43,
+      51,
+      63,
+      53,
+      50,
+      57,
+      59,
+      64,
+      57,
+      69,
+      57,
+      55,
+      56,
+      52,
+      50,
+      51,
+      56,
+      49,
+      50,
+      45,
+      54,
+      61,
+      71,
+      51,
+      48,
+      49,
+      54,
+      43,
+      54,
+      49,
+      66,
+      50,
+      62,
+      55,
+      57,
+      51
+    ]
+  },
+  "top_keywords": [
+    [
+      "announced",
+      66
+    ],
+    [
+      "october",
+      56
+    ],
+    [
+      "earnings",
+      51
+    ],
+    [
+      "revenue",
+      51
+    ],
+    [
+      "citing",
+      47
+    ],
+    [
+      "european",
+      35
+    ],
+    [
+      "next",
+      35
+    ],
+    [
+      "chief",
+      34
+    ],
+    [
+      "dividend",
+      34
+    ],
+    [
+      "expected",
+      33
+    ],
+    [
+      "analysts",
+      31
+    ],
+    [
+      "target",
+      29
+    ],
+    [
+      "quarterly",
+      29
+    ],
+    [
+      "sales",
+      27
+    ],
+    [
+      "price",
+      27
+    ],
+    [
+      "growth",
+      26
+    ],
+    [
+      "officer",
+      26
+    ],
+    [
+      "guidance",
+      26
+    ],
+    [
+      "second",
+      25
+    ],
+    [
+      "third",
+      25
+    ],
+    [
+      "demand",
+      25
+    ],
+    [
+      "capital",
+      24
+    ],
+    [
+      "firm",
+      23
+    ],
+    [
+      "cash",
+      23
+    ],
+    [
+      "outlook",
+      22
+    ],
+    [
+      "consensus",
+      21
+    ],
+    [
+      "net",
+      21
+    ],
+    [
+      "costs",
+      20
+    ],
+    [
+      "reported",
+      20
+    ],
+    [
+      "full",
+      19
+    ]
+  ],
+  "distinct_2": 0.67,
+  "nearest_neighbour_similarity": {
+    "mean": 0.284,
+    "p95": 0.429,
+    "max": 0.5
+  },
+  "planned_specs": 285,
+  "rejected": {
+    "ungrounded": 14,
+    "blind_disagrees": 82,
+    "near_duplicate": 4
+  },
+  "blind_magnitude_exact_agreement": 0.638,
+  "automatic_fixes": {
+    "style_phrase_removed": 22,
+    "primary_entity_added_to_mentioned": 24
+  }
+}

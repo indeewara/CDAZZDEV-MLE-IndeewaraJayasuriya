@@ -1,0 +1,87 @@
+2026-10-06 15:51:53,946 INFO generate: 3/40 batches cached, 37 to go
+2026-10-06 15:52:18,233 INFO generate: batch 1/37 -> 6 items (total 24)
+2026-10-06 15:52:42,507 INFO generate: batch 2/37 -> 6 items (total 30)
+2026-10-06 15:53:06,293 INFO generate: batch 3/37 -> 6 items (total 36)
+2026-10-06 15:53:30,458 INFO generate: batch 4/37 -> 6 items (total 42)
+2026-10-06 15:53:55,617 INFO generate: batch 5/37 -> 6 items (total 48)
+2026-10-06 15:54:23,629 INFO generate: batch 6/37 -> 6 items (total 54)
+2026-10-06 15:54:48,782 INFO generate: batch 7/37 -> 6 items (total 60)
+2026-10-06 15:55:14,188 INFO generate: batch 8/37 -> 6 items (total 66)
+2026-10-06 15:55:38,274 INFO generate: batch 9/37 -> 6 items (total 72)
+2026-10-06 15:56:04,092 INFO generate: batch 10/37 -> 6 items (total 78)
+2026-10-06 15:56:31,507 INFO generate: batch 11/37 -> 6 items (total 84)
+2026-10-06 15:56:56,113 INFO generate: batch 12/37 -> 6 items (total 90)
+2026-10-06 15:57:22,676 INFO generate: batch 13/37 -> 6 items (total 96)
+2026-10-06 15:57:47,579 INFO generate: batch 14/37 -> 6 items (total 102)
+2026-10-06 15:58:11,838 INFO generate: batch 15/37 -> 6 items (total 108)
+2026-10-06 15:58:34,605 INFO generate: batch 16/37 -> 6 items (total 114)
+2026-10-06 15:59:01,435 INFO generate: batch 17/37 -> 6 items (total 120)
+2026-10-06 15:59:26,016 INFO generate: batch 18/37 -> 6 items (total 126)
+2026-10-06 15:59:50,209 INFO generate: batch 19/37 -> 6 items (total 132)
+2026-10-06 16:00:15,325 INFO generate: batch 20/37 -> 6 items (total 138)
+2026-10-06 16:00:40,063 INFO generate: batch 21/37 -> 6 items (total 144)
+2026-10-06 16:01:07,164 INFO generate: batch 22/37 -> 6 items (total 150)
+2026-10-06 16:01:33,678 INFO generate: batch 23/37 -> 6 items (total 156)
+2026-10-06 16:01:59,261 INFO generate: batch 24/37 -> 6 items (total 162)
+2026-10-06 16:02:23,915 INFO generate: batch 25/37 -> 6 items (total 168)
+2026-10-06 16:02:49,962 INFO generate: batch 26/37 -> 6 items (total 174)
+2026-10-06 16:03:14,320 INFO generate: batch 27/37 -> 6 items (total 180)
+2026-10-06 16:03:37,968 INFO generate: batch 28/37 -> 6 items (total 186)
+2026-10-06 16:04:03,152 INFO generate: batch 29/37 -> 6 items (total 192)
+2026-10-06 16:04:29,269 INFO generate: batch 30/37 -> 6 items (total 198)
+2026-10-06 16:04:53,290 INFO generate: batch 31/37 -> 6 items (total 204)
+2026-10-06 16:05:16,649 INFO generate: batch 32/37 -> 6 items (total 210)
+2026-10-06 16:05:43,087 INFO generate: batch 33/37 -> 6 items (total 216)
+2026-10-06 16:06:09,946 INFO generate: batch 34/37 -> 6 items (total 222)
+2026-10-06 16:06:34,361 INFO generate: batch 35/37 -> 6 items (total 228)
+2026-10-06 16:06:57,758 INFO generate: batch 36/37 -> 6 items (total 234)
+2026-10-06 16:07:23,119 INFO generate: batch 37/37 -> 6 items (total 240)
+2026-10-06 16:07:23,125 INFO label: 18 cached, 222 to go
+2026-10-06 16:07:42,956 INFO label: 8/222
+2026-10-06 16:08:02,305 INFO label: 16/222
+2026-10-06 16:08:23,355 INFO label: 24/222
+2026-10-06 16:08:44,234 INFO label: 32/222
+2026-10-06 16:09:02,912 INFO label: 40/222
+2026-10-06 16:09:24,052 INFO label: 48/222
+2026-10-06 16:09:44,278 INFO label: 56/222
+2026-10-06 16:10:04,747 INFO label: 64/222
+2026-10-06 16:10:24,769 INFO label: 72/222
+2026-10-06 16:10:44,476 INFO label: 80/222
+2026-10-06 16:11:05,429 INFO label: 88/222
+2026-10-06 16:11:26,436 INFO label: 96/222
+2026-10-06 16:11:44,509 INFO label: 104/222
+2026-10-06 16:12:03,515 INFO label: 112/222
+2026-10-06 16:12:25,341 INFO label: 120/222
+2026-10-06 16:12:45,117 INFO label: 128/222
+2026-10-06 16:13:07,450 INFO label: 136/222
+2026-10-06 16:13:27,298 INFO label: 144/222
+2026-10-06 16:13:47,374 INFO label: 152/222
+2026-10-06 16:14:04,402 INFO label: 160/222
+2026-10-06 16:14:24,276 INFO label: 168/222
+2026-10-06 16:14:41,451 INFO label: 176/222
+2026-10-06 16:15:02,134 INFO label: 184/222
+2026-10-06 16:15:22,164 INFO label: 192/222
+2026-10-06 16:15:43,841 INFO label: 200/222
+2026-10-06 16:16:03,443 INFO label: 208/222
+2026-10-06 16:16:25,024 INFO label: 216/222
+2026-10-06 16:16:42,254 INFO label: 222/222
+{
+  "planned_specs": 240,
+  "split_sizes": {
+    "train": 133,
+    "val": 18,
+    "test": 18
+  },
+  "rejected": {
+    "ungrounded": 13,
+    "blind_disagrees": 51,
+    "near_duplicate": 7
+  },
+  "blind_magnitude_exact_agreement": 0.633,
+  "distinct_2": 0.679,
+  "nearest_neighbour_similarity": {
+    "mean": 0.166,
+    "p95": 0.256,
+    "max": 0.363
+  }
+}
