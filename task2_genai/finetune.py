@@ -153,8 +153,32 @@ def sft_config(output_dir: str, **overrides):
 
 def build_trainer(model, tokenizer, train_ds, val_ds, output_dir: str, **config_overrides):
     from trl import SFTTrainer
-    return SFTTrainer(model=model, args=sft_config(output_dir, **config_overrides), train_dataset=train_ds,
-                      eval_dataset=val_ds, processing_class=tokenizer, peft_config=lora_config())
+    trainer = SFTTrainer(model=model, args=sft_config(output_dir, **config_overrides), train_dataset=train_ds,
+                         eval_dataset=val_ds, processing_class=tokenizer, peft_config=lora_config())
+    cast_trainable_to_fp32(trainer.model)
+    return trainer
+
+
+def cast_trainable_to_fp32(model) -> int:
+    """fp16 mixed precision keeps fp32 'master' weights: the GradScaler unscales gradients and only supports
+    fp32 there. Qwen2.5's checkpoint is stored in bfloat16, and adapters created next to bf16 layers can
+    inherit it, which crashes the first optimizer step on a T4 ('..._unscale_cuda not implemented for
+    BFloat16'). The trainable parameters are only the LoRA adapters (~18M), so fp32 costs ~70 MB."""
+    n = 0
+    for p in model.parameters():
+        if p.requires_grad and p.dtype != torch.float32:
+            p.data = p.data.float()
+            n += 1
+    return n
+
+
+def trainable_dtypes(model) -> dict[str, int]:
+    """{dtype: number of trainable tensors} - should be {'torch.float32': ...} only."""
+    counts: dict[str, int] = {}
+    for p in model.parameters():
+        if p.requires_grad:
+            counts[str(p.dtype)] = counts.get(str(p.dtype), 0) + 1
+    return counts
 
 
 # ======================================================================================
