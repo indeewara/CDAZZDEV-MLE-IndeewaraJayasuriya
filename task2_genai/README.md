@@ -3,6 +3,10 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/indeewara/CDAZZDEV-MLE-IndeewaraJayasuriya/blob/main/task2_genai/task2_news_impact_finetuning.ipynb)
 &nbsp; Notebook: [`task2_news_impact_finetuning.ipynb`](task2_news_impact_finetuning.ipynb) (dataset → QLoRA training → evaluation)
 
+**Fine-tuned model (merged, public):**
+[huggingface.co/Indee99/qwen2.5-1.5b-financial-news-impact](https://huggingface.co/Indee99/qwen2.5-1.5b-financial-news-impact)
+- QLoRA adapter merged into Qwen2.5-1.5B-Instruct with `merge_and_unload()`; loads with plain `transformers`, no PEFT.
+
 ## Problem statement
 
 ### The problem
@@ -174,7 +178,8 @@ the notebook repeats them as a table.
 | LoRA | r 16, alpha 32, dropout 0.05, all 7 linear projections (q, k, v, o, gate, up, down) |
 | Training | 3 epochs, lr 2e-4 cosine with 10% warm-up, batch 4 × accumulation 4 = 16, max length 1024, paged AdamW 8-bit |
 | Loss | assistant tokens only (the 600-token system prompt is masked out) |
-| Output | adapter merged with `merge_and_unload()` into a 16-bit base, pushed to the Hugging Face Hub |
+| Output | adapter merged with `merge_and_unload()` into a 16-bit base, pushed to the Hugging Face Hub: [Indee99/qwen2.5-1.5b-financial-news-impact](https://huggingface.co/Indee99/qwen2.5-1.5b-financial-news-impact) |
+| Loss per epoch | train 1.135 → 0.801 → 0.670; **validation 0.945 → 0.881 → 0.862** (falls every epoch; the narrowing improvement at epoch 3 is why training stops there) |
 
 The training code path (data format, prompt masking, LoRA targets, per-epoch evaluation, merge) was smoke-tested on
 CPU with a tiny Qwen2 model before the GPU run.

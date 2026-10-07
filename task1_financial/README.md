@@ -16,6 +16,12 @@ research brief.
 | Bonus | [`report.py`](report.py) | Markdown brief rendered to a styled one-page HTML with an embedded matplotlib chart → [`outputs/AAPL_brief.html`](outputs/AAPL_brief.html) |
 | Tests | [`test_indicators.py`](test_indicators.py), [`test_llm_reasoning.py`](test_llm_reasoning.py) | 30 offline tests: indicators against Wilder's textbook example and independent loop implementations, missing-data handling, schema validation and repair path, aggregation, signal context |
 
+## Bonus: one-page research brief
+[`outputs/AAPL_brief.html`](outputs/AAPL_brief.html) (styled HTML, chart embedded, prints on one A4 page) and
+[`outputs/AAPL_brief.md`](outputs/AAPL_brief.md). Rendered:
+
+<img src="outputs/AAPL_brief_preview.png" alt="Rendered AAPL equity research brief" width="720">
+
 **LLM:** `openai/gpt-oss-120b` via the Groq free tier (Llama-3-70B is no longer offered there), temperature 0, JSON mode.
 
 **News source:** yfinance's news endpoint is tried first, but returned no headlines during development, so the

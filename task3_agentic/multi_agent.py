@@ -71,6 +71,7 @@ def run_pipeline(ticker: str) -> tuple[MultiAgentReport | None, dict]:
     analyst, writer = build_team()
     a_cfg = {"configurable": {"thread_id": f"{sid}-analyst"}, "recursion_limit": 30}  # A keeps its own memory
     b_cfg = {"configurable": {"thread_id": f"{sid}-writer"}, "recursion_limit": 30}
+    current_agent.set("orchestrator")    # pipeline-level events are not any one agent's
     log_event({"event": "pipeline_start", "ticker": ticker, "question": question})
     print(f"session {sid} | {question}")
 
@@ -132,6 +133,7 @@ def run_pipeline(ticker: str) -> tuple[MultiAgentReport | None, dict]:
         report, ungrounded = grounded_json(MULTI_REPORT_SYSTEM, user + INCORPORATION_REPAIR.format(figures=figures),
                                            MultiAgentReport, sources, label=RESEARCH_WRITER)
         incorporated = report is not None and incorporates_clarification(report, response)
+    current_agent.set("orchestrator")
     log_event({"event": "critique_incorporated", "incorporated": incorporated})
     if tracing.VERBOSE:
         print(f"[{RESEARCH_WRITER}] Data Analyst's answer used in the report's analysis: {'YES' if incorporated else 'NO'}")

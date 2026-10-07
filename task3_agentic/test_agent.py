@@ -262,3 +262,21 @@ def test_incorporation_is_checked_in_the_analysis_not_just_claimed():
     assert incorporates_clarification(MultiAgentReport.model_validate(used), resp)
     text_only = ClarificationResponse(answer="Momentum is still bullish across both windows.")
     assert incorporates_clarification(claimed_only, text_only)         # nothing numeric to trace
+
+
+# ---- Bonus: trace dashboard (data functions only; no Streamlit server) ---------------------------
+def test_dashboard_reads_trace_and_labels_sessions(tmp_path):
+    import dashboard as d
+    path = tmp_path / "t.jsonl"
+    rows = [{"ts": "2026-10-07T01:00:00+00:00", "session_id": "p1", "agent": "data_analyst", "event": "pipeline_start", "ticker": "MSFT"},
+            {"ts": "2026-10-07T01:00:02+00:00", "session_id": "p1", "agent": "data_analyst", "event": "tool_call", "tool": "get_price_data",
+             "inputs": {"ticker": "MSFT"}, "output": "{}", "duration_ms": 1500.0, "status": "ok"},
+            {"ts": "2026-10-07T01:00:05+00:00", "session_id": "p1", "agent": "research_writer", "event": "handoff", "from": "a", "to": "b"},
+            {"ts": "2026-10-07T02:00:00+00:00", "session_id": "c1", "agent": "research_agent", "event": "cache_hit", "ticker": "AAPL"}]
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\nnot json\n")
+    df = d.load_events(path)
+    labels = dict(zip(d.sessions(df)["session_id"], d.sessions(df)["label"]))
+    assert labels == {"p1": "3B pipeline - MSFT", "c1": "cache hit - AAPL"}
+    assert d.summary(df[df.session_id == "p1"]) == {"tool calls": 1, "errors": 0, "tool time (s)": 1.5, "hand-offs": 1, "model fallbacks": 0}
+    t = d.timeline(df[df.event == "tool_call"])
+    assert (t["end_s"] - t["start_s"]).iloc[0] == 1.5 and t["start_s"].iloc[0] == 0 and t["row"].iloc[0] == "1. get_price_data"

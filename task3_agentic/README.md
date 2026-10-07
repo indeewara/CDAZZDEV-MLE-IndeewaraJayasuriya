@@ -49,6 +49,18 @@ not just claimed.
   inputs, output (truncated to 200 characters), duration, status, agent and session. Hand-offs, grounding checks,
   cache hits and model fallbacks are logged too.
 
+## Bonus - trace dashboard
+[`dashboard.py`](dashboard.py) is a Streamlit app that reads `logs/agent_trace.jsonl`: pick a session to see headline
+numbers, a timeline of every tool call coloured by agent, latency per tool, the hand-offs (expandable to the JSON that
+was passed) and every logged event. `?session=<id>` opens a specific run.
+```bash
+streamlit run task3_agentic/dashboard.py
+```
+The 3B run below: the Data Analyst's tools (orange), the Research Writer's research (green), then the Data Analyst
+again at ~130 s answering the writer's clarification request - the critique loop is visible as a gap in the timeline.
+
+<img src="outputs/dashboard.png" alt="Agent trace dashboard showing a two-agent run" width="820">
+
 ## Files
 | File | Purpose |
 |---|---|
@@ -58,7 +70,8 @@ not just claimed.
 | [`memory.py`](memory.py) | 3C cache and follow-up memory |
 | [`tracing.py`](tracing.py) | trace logging, token pacing for the free tier, validated JSON calls |
 | [`agent_prompts.py`](agent_prompts.py), [`agent_schemas.py`](agent_schemas.py) | all prompts; Pydantic schemas and grounding checks |
-| [`test_agent.py`](test_agent.py) | 22 offline tests - a scripted model drives the real graph |
+| [`dashboard.py`](dashboard.py) | bonus: Streamlit trace dashboard |
+| [`test_agent.py`](test_agent.py) | 23 offline tests - a scripted model drives the real graph |
 
 ## Run
 ```bash
