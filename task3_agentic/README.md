@@ -86,5 +86,10 @@ A full notebook run uses ~130k tokens of `gpt-oss-120b`'s 200k free daily quota 
 - Figures are grounding-checked, reasoning is not: a real number can still be misread (e.g. a price called "close
   to" a band it is far from). An LLM-as-judge pass, as in Task 2, would be the next step.
 - News is not cross-checked against data: a headline can contradict the prices and still be cited.
-- With the fallback model the reports are noticeably weaker; the run completes, but quality drops.
+- With the fallback model the reports are noticeably weaker; the run completes, but quality drops. In the saved
+  notebook run both `gpt-oss-120b` and `qwen3.8-27b` reached their daily quota and `gpt-oss-20b` finished it (every
+  switch is in the trace). The NVDA report written by `gpt-oss-20b` contains three figures the grounding check could
+  not trace; it prints a warning rather than hiding them.
+- The number check is deliberately strict and can flag numbers inside names: in the AAPL report it flags "500",
+  which comes from "S&P 500".
 - Not investment advice.

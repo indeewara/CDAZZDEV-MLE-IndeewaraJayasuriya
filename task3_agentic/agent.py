@@ -7,6 +7,7 @@ token pacing, and error-returning tools keep it from stalling or crashing. A Mem
 conversation per thread_id, which is the short-term memory used for follow-up questions (Task 3C).
 """
 import json
+import time
 from typing import Annotated, TypedDict
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -18,18 +19,21 @@ from langgraph.graph.message import add_messages
 from agent_prompts import (GROUNDING_REPAIR, REPAIR_USER, REPORT_SYSTEM, REPORT_USER, RESEARCH_AGENT_SYSTEM,
                            RESEARCH_QUERY)
 from agent_schemas import ResearchReport, ungrounded_numbers
-from tracing import (MODEL_FALLBACKS, call_json, current_agent, ensure_groq_key, estimate_tokens, groq_client,
-                     EXHAUSTED_MODELS, is_daily_quota_error, limiter, log_event)
+from tracing import (EXHAUSTED_MODELS, MAX_OUTPUT_TOKENS, MODEL_ORDER, PER_MINUTE_RETRY_WAIT_S, active_model, call_json,
+                     current_agent, ensure_groq_key, estimate_tokens, groq_client, is_daily_quota_error,
+                     is_per_minute_limit, is_tool_format_error, limiter, log_event, next_model, reasoning_effort)
 import tracing
 from tools import TOOLS
 
-AGENT_MODEL = "openai/gpt-oss-120b"   # strongest free Groq model with tool calling
-REASONING_EFFORT = "low"              # enough to plan the next tool call; keeps tokens inside the free-tier budget
+AGENT_MODEL = "openai/gpt-oss-120b"   # strongest free Groq model with tool calling; falls back along MODEL_ORDER
+REASONING_EFFORT = "low"              # gpt-oss: enough to plan the next tool call within the free-tier budget
 MAX_TOOL_ROUNDS = 8                   # 5 tools + room for retries/alternatives; stops runaway loops
 MAX_OBSERVATION_CHARS = 2500          # cap per tool result in the conversation (token budget)
 THOUGHT_PREVIEW_CHARS = 300
 # Market conventions a report may state without a tool having returned them (documented, deliberately short)
 KNOWN_FACTS = "Conventions: 1 option contract = 100 shares; 252 trading days per year; 90-day horizon."
+MAX_FORMAT_RETRIES = 2              # malformed tool-call JSON: retry once, then let the next model take this step
+MAX_RATE_LIMIT_WAITS = 3            # per step: wait out a per-minute limit at most 3 times before giving up
 GROUNDING_RETRIES = 2              # re-ask the report writer at most twice to drop numbers not in the observations
 
 
@@ -43,10 +47,17 @@ def _observation(result) -> str:
     return text if len(text) <= MAX_OBSERVATION_CHARS else text[:MAX_OBSERVATION_CHARS] + "...[truncated]"
 
 
+def rationale(msg: AIMessage) -> str:
+    """Why the agent took this step: the sentence it wrote before the tool call (the prompts ask for one) or,
+    for models that return it separately (gpt-oss), its reasoning text."""
+    text = (msg.content if msg.tool_calls and msg.content else "") or msg.additional_kwargs.get("reasoning_content") or ""
+    return str(text).strip().replace("\n", " ")
+
+
 def _show(name: str, msg: AIMessage) -> None:
     if not tracing.VERBOSE:
         return
-    thought = (msg.additional_kwargs.get("reasoning_content") or "").strip().replace("\n", " ")
+    thought = rationale(msg)
     if thought:
         print(f"[{name}] thinks: {thought[:THOUGHT_PREVIEW_CHARS]}{'...' if len(thought) > THOUGHT_PREVIEW_CHARS else ''}")
     for call in msg.tool_calls:
@@ -59,18 +70,20 @@ def build_agent(tools: list, system_prompt: str, name: str = "research_agent", m
                 checkpointer=None, llm=None):
     """Compile an agent graph restricted to `tools`. Calls to any other tool name are refused (3B tool access).
     `llm` is injectable so the loop can be tested offline with a scripted model."""
-    fallback = fallback_with_tools = None
+    # One client per model in the fallback chain; an injected llm (tests) is used as the only "model".
     if llm is None:
         ensure_groq_key()
-        llm = ChatGroq(model=AGENT_MODEL, temperature=0, reasoning_effort=REASONING_EFFORT, max_retries=2)
-        fallback = ChatGroq(model=MODEL_FALLBACKS[AGENT_MODEL], temperature=0, reasoning_effort=REASONING_EFFORT,
-                            max_retries=2)
-        fallback_with_tools = fallback.bind_tools(tools, parallel_tool_calls=False)
-    llm_with_tools = llm.bind_tools(tools, parallel_tool_calls=False)  # one call per step -> visible observe/decide cycles
-    already_out = fallback is not None and AGENT_MODEL in EXHAUSTED_MODELS   # quota ran out earlier this session
-    active = {"model": MODEL_FALLBACKS[AGENT_MODEL] if already_out else AGENT_MODEL, "fallen_back": already_out}
+        clients = {m: ChatGroq(model=m, temperature=0, reasoning_effort=reasoning_effort(m, REASONING_EFFORT),
+                               max_tokens=MAX_OUTPUT_TOKENS, max_retries=2) for m in MODEL_ORDER}
+    else:
+        clients = {"injected": llm}
+    with_tools = {m: c.bind_tools(tools, parallel_tool_calls=False)  # one call per step -> visible observe/decide
+                  for m, c in clients.items()}
     allowed = {t.name: t for t in tools}
     system = SystemMessage(system_prompt.format(max_rounds=max_tool_rounds))
+
+    def current_model() -> str:
+        return "injected" if "injected" in clients else active_model(AGENT_MODEL)
 
     def agent_node(state: AgentState):
         current_agent.set(name)
@@ -78,32 +91,46 @@ def build_agent(tools: list, system_prompt: str, name: str = "research_agent", m
         exhausted = state.get("tool_rounds", 0) >= max_tool_rounds
         if exhausted:
             messages.append(HumanMessage("Tool budget used up. Reply now with your findings from the observations."))
-        try:
-            reply = _invoke(exhausted, messages)
-        except Exception as exc:  # noqa: BLE001 - an LLM outage must not crash the run
-            if is_daily_quota_error(exc) and fallback is not None and not active["fallen_back"]:
-                active.update(model=MODEL_FALLBACKS[AGENT_MODEL], fallen_back=True)
-                EXHAUSTED_MODELS.add(AGENT_MODEL)
-                log_event({"event": "model_fallback", "from": AGENT_MODEL, "to": active["model"], "reason": "daily quota"})
+        waits, format_errors, step_model = 0, 0, None
+        while True:   # daily quota -> next model; per-minute limit -> wait; malformed tool call -> retry; else end
+            model = step_model or current_model()
+            try:
+                reply = _invoke(model, exhausted, messages)
+                break
+            except Exception as exc:  # noqa: BLE001 - an LLM outage must not crash the run
+                if is_per_minute_limit(exc) and waits < MAX_RATE_LIMIT_WAITS:
+                    waits += 1
+                    log_event({"event": "rate_limit_wait", "model": model, "seconds": PER_MINUTE_RETRY_WAIT_S})
+                    if tracing.VERBOSE:
+                        print(f"[{name}] {model} per-minute limit - waiting {PER_MINUTE_RETRY_WAIT_S} s")
+                    time.sleep(PER_MINUTE_RETRY_WAIT_S)
+                    continue
+                if is_tool_format_error(exc) and format_errors < MAX_FORMAT_RETRIES and model != "injected":
+                    # retry once with the same model, then hand THIS step to the next model (quota not marked used)
+                    format_errors += 1
+                    step_model = model if format_errors == 1 else (next_model(model) or model)
+                    log_event({"event": "tool_call_format_retry", "model": model, "retry_with": step_model})
+                    if tracing.VERBOSE:
+                        print(f"[{name}] {model} produced a malformed tool call - retrying with {step_model}")
+                    continue
+                nxt = None
+                if is_daily_quota_error(exc) and model != "injected":
+                    EXHAUSTED_MODELS.add(model)
+                    nxt = next_model(model)
+                if nxt is None:
+                    reply = _llm_unavailable(exc)
+                    break
+                log_event({"event": "model_fallback", "from": model, "to": nxt, "reason": "daily quota"})
                 if tracing.VERBOSE:
-                    print(f"[{name}] {AGENT_MODEL} daily quota used up - falling back to {active['model']}")
-                try:
-                    reply = _invoke(exhausted, messages)
-                except Exception as exc2:  # noqa: BLE001
-                    reply = _llm_unavailable(exc2)
-            else:
-                reply = _llm_unavailable(exc)
+                    print(f"[{name}] {model} daily quota used up - falling back to {nxt}")
         _show(name, reply)
         return {"messages": [reply]}
 
-    def _invoke(exhausted: bool, messages: list) -> AIMessage:
-        if active["fallen_back"]:
-            model = fallback if exhausted else fallback_with_tools
-        else:
-            model = llm if exhausted else llm_with_tools
-        lim = limiter(active["model"])
+    def _invoke(model: str, exhausted: bool, messages: list) -> AIMessage:
+        runnable = clients[model] if exhausted else with_tools[model]
+        lim = limiter(model)
         lim.wait(estimate_tokens("".join(str(m.content) for m in messages)))
-        reply = model.invoke(messages)
+        reply = runnable.invoke(messages)
         lim.record((reply.usage_metadata or {}).get("total_tokens", estimate_tokens(str(messages))))
         return reply
 
@@ -111,8 +138,8 @@ def build_agent(tools: list, system_prompt: str, name: str = "research_agent", m
         log_event({"event": "llm_unavailable", "error": f"{type(exc).__name__}: {exc}"[:200]})
         if tracing.VERBOSE:
             print(f"[{name}] language model unavailable ({type(exc).__name__}) - stopping with the findings so far")
-        return AIMessage(content="The language model is unavailable (quota or outage); stopping with the observations "
-                                 "gathered so far.")
+        return AIMessage(content=f"The language model call failed ({type(exc).__name__}); stopping with the "
+                                 "observations gathered so far.")
 
     def tool_node(state: AgentState):
         current_agent.set(name)

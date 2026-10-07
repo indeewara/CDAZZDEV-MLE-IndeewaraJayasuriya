@@ -15,7 +15,8 @@ from langchain_core.tools import StructuredTool
 from pydantic import ValidationError
 
 from agent_prompts import BATCH_SENTIMENT_SYSTEM, BATCH_SENTIMENT_USER
-from tracing import estimate_tokens, groq_client, limiter, traced
+from tracing import (EXHAUSTED_MODELS, MAX_OUTPUT_TOKENS, active_model, estimate_tokens, groq_client, is_daily_quota_error, limiter,
+                     log_event, next_model, reasoning_effort, traced)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "task1_financial"))
 from data_pipeline import add_indicators, build_summary, fetch_info, fetch_news, fetch_ohlcv  # noqa: E402
@@ -106,20 +107,40 @@ def get_news(ticker: str, n: int = 10) -> dict:
                            "date": (h.get("published") or "")[:10]} for h in headlines]}
 
 
+def _json_completion(model: str, system: str, user: str):
+    """One JSON-mode completion, moving along the model chain if a model's daily quota is used up."""
+    client, model = groq_client(), active_model(model)
+    while model is not None:
+        lim = limiter(model)
+        lim.wait(estimate_tokens(system + user))
+        try:
+            resp = client.chat.completions.create(
+                model=model, temperature=0, reasoning_effort=reasoning_effort(model), max_completion_tokens=MAX_OUTPUT_TOKENS,
+                response_format={"type": "json_object"},
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
+        except Exception as exc:  # noqa: BLE001
+            if not is_daily_quota_error(exc):
+                raise
+            EXHAUSTED_MODELS.add(model)
+            nxt = next_model(model)
+            log_event({"event": "model_fallback", "from": model, "to": nxt, "reason": "daily quota"})
+            model = nxt
+            continue
+        lim.record(resp.usage.total_tokens)
+        return resp
+    return None
+
+
 def llm_sentiment(headlines: list[str]) -> dict:
     """Scores a list of news headline strings with an LLM (positive / negative / neutral with confidence) and
     returns a confidence-weighted aggregate sentiment score from -1 (negative) to +1 (positive)."""
     headlines = [h.strip() for h in headlines if isinstance(h, str) and h.strip()][:MAX_HEADLINES]
     if not headlines:
         return {"error": "no headlines given - pass a list of headline strings"}
-    client = groq_client()
     user = BATCH_SENTIMENT_USER.format(headlines="\n".join(f"- {h}" for h in headlines))
-    lim = limiter(SENTIMENT_MODEL)
-    lim.wait(estimate_tokens(BATCH_SENTIMENT_SYSTEM + user))
-    resp = client.chat.completions.create(
-        model=SENTIMENT_MODEL, temperature=0, reasoning_effort="low", response_format={"type": "json_object"},
-        messages=[{"role": "system", "content": BATCH_SENTIMENT_SYSTEM}, {"role": "user", "content": user}])
-    lim.record(resp.usage.total_tokens)
+    resp = _json_completion(SENTIMENT_MODEL, BATCH_SENTIMENT_SYSTEM, user)
+    if resp is None:
+        return {"error": "sentiment model unavailable (all model quotas used up)"}
     try:
         items = json.loads(resp.choices[0].message.content or "{}").get("results", [])
     except json.JSONDecodeError:

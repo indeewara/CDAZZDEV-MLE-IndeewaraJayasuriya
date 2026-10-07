@@ -25,18 +25,48 @@ MAX_OUTPUT_CHARS = 200          # the assessment's truncation length for logged 
 GROQ_TOKENS_PER_MINUTE = 8000   # free-tier TPM for gpt-oss-120b and gpt-oss-20b (from Groq response headers)
 # Each Groq model has its own free daily token quota (200k for gpt-oss-120b). When the main model's quota is used up,
 # switch to the smaller model rather than fail - a graceful-degradation fallback, logged to the trace.
-MODEL_FALLBACKS = {"openai/gpt-oss-120b": "openai/gpt-oss-20b"}
+MODEL_ORDER = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"]   # preference order
+MODEL_FALLBACKS = {"openai/gpt-oss-120b": "qwen/qwen3.8-27b"}   # first fallback (shown in the notebook)
+# Upper bound on tokens generated per call. Without it LangChain/Groq request a very large maximum, which models with a
+# per-minute OUTPUT-token limit (Qwen3 on Groq) reject outright as "request too large". No reply here needs more.
+MAX_OUTPUT_TOKENS = 3000
+PER_MINUTE_RETRY_WAIT_S = 60
+# gpt-oss models take a reasoning effort; Qwen3 on Groq takes "none" (its reasoning is not returned anyway)
+REASONING_EFFORT = {"qwen/qwen3.8-27b": "none"}
+
+
+def reasoning_effort(model: str, default: str = "low") -> str:
+    return REASONING_EFFORT.get(model, default)
 
 
 EXHAUSTED_MODELS: set[str] = set()   # models whose daily quota ran out this session - skip straight to the fallback
 
 
+def next_model(model: str) -> str | None:
+    """The next model in MODEL_ORDER (wrapping around) whose quota is not exhausted; None if all are."""
+    start = MODEL_ORDER.index(model) + 1 if model in MODEL_ORDER else 0
+    rotated = MODEL_ORDER[start:] + MODEL_ORDER[:start]
+    return next((m for m in rotated if m != model and m not in EXHAUSTED_MODELS), None)
+
+
 def active_model(model: str) -> str:
-    return MODEL_FALLBACKS.get(model, model) if model in EXHAUSTED_MODELS else model
+    """`model` itself, or the next available one if its daily quota ran out earlier this session."""
+    return model if model not in EXHAUSTED_MODELS else (next_model(model) or model)
 
 
 def is_daily_quota_error(exc: Exception) -> bool:
     return "per day" in str(exc).lower() or "tokens per day" in str(exc).lower()
+
+
+def is_tool_format_error(exc: Exception) -> bool:
+    """The model produced a malformed tool call (Groq 400 'tool_use_failed') - a one-off slip, worth retrying."""
+    return "tool_use_failed" in str(exc) or "Failed to parse tool call" in str(exc)
+
+
+def is_per_minute_limit(exc: Exception) -> bool:
+    """A 429 that clears within a minute (tokens/requests per minute) - worth waiting for, not switching models."""
+    text = str(exc).lower()
+    return "429" in text and "per minute" in text and not is_daily_quota_error(exc)
 
 current_agent = contextvars.ContextVar("current_agent", default="research_agent")
 session_id = contextvars.ContextVar("session_id", default="none")
@@ -132,7 +162,7 @@ def groq_client():
 
 
 def call_json(client, model: str, system: str, user: str, schema: type[BaseModel], repair_template: str,
-              max_attempts: int = 3, reasoning_effort: str = "low") -> BaseModel | None:
+              max_attempts: int = 3, effort: str = "low") -> BaseModel | None:
     """JSON-mode call validated against `schema`; validation errors are sent back for a corrected reply."""
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     model = active_model(model)
@@ -141,14 +171,22 @@ def call_json(client, model: str, system: str, user: str, schema: type[BaseModel
         lim.wait(estimate_tokens(system + user))
         try:
             resp = client.chat.completions.create(model=model, messages=messages, temperature=0,
-                                                  reasoning_effort=reasoning_effort,
+                                                  max_completion_tokens=MAX_OUTPUT_TOKENS,
+                                                  reasoning_effort=reasoning_effort(model, effort),
                                                   response_format={"type": "json_object"})
         except Exception as exc:  # noqa: BLE001 - API errors: retry, then give up gracefully
-            if is_daily_quota_error(exc) and model in MODEL_FALLBACKS:
+            if is_daily_quota_error(exc):
                 EXHAUSTED_MODELS.add(model)
-                log_event({"event": "model_fallback", "from": model, "to": MODEL_FALLBACKS[model], "reason": "daily quota"})
-                print(f"    {model} daily quota used up - falling back to {MODEL_FALLBACKS[model]}")
-                model = MODEL_FALLBACKS[model]
+                nxt = next_model(model)
+                if nxt is not None:
+                    log_event({"event": "model_fallback", "from": model, "to": nxt, "reason": "daily quota"})
+                    print(f"    {model} daily quota used up - falling back to {nxt}")
+                    model = nxt
+                    continue
+            if is_per_minute_limit(exc):
+                log_event({"event": "rate_limit_wait", "model": model, "seconds": PER_MINUTE_RETRY_WAIT_S})
+                print(f"    {model} per-minute limit - waiting {PER_MINUTE_RETRY_WAIT_S} s")
+                time.sleep(PER_MINUTE_RETRY_WAIT_S)
                 continue
             print(f"    LLM error (attempt {attempt}/{max_attempts}): {type(exc).__name__}: {str(exc)[:150]}")
             continue

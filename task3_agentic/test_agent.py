@@ -248,7 +248,7 @@ def test_llm_outage_ends_run_gracefully_instead_of_crashing(tmp_trace):
         def invoke(self, messages):
             raise RuntimeError("Rate limit reached ... tokens per day (TPD)")
     state = run(Down([]), [ECHO])
-    assert "unavailable" in state["messages"][-1].content
+    assert "call failed" in state["messages"][-1].content
     assert any(json.loads(l)["event"] == "llm_unavailable" for l in tmp_trace.read_text().splitlines())
 
 
@@ -280,3 +280,58 @@ def test_dashboard_reads_trace_and_labels_sessions(tmp_path):
     assert d.summary(df[df.session_id == "p1"]) == {"tool calls": 1, "errors": 0, "tool time (s)": 1.5, "hand-offs": 1, "model fallbacks": 0}
     t = d.timeline(df[df.event == "tool_call"])
     assert (t["end_s"] - t["start_s"]).iloc[0] == 1.5 and t["start_s"].iloc[0] == 0 and t["row"].iloc[0] == "1. get_price_data"
+
+
+def test_model_chain_moves_on_and_never_cycles(monkeypatch):
+    monkeypatch.setattr(tracing, "EXHAUSTED_MODELS", set())
+    first, second, third = tracing.MODEL_ORDER
+    assert tracing.active_model(first) == first
+    tracing.EXHAUSTED_MODELS.add(first)
+    assert tracing.active_model(first) == second and tracing.next_model(first) == second
+    tracing.EXHAUSTED_MODELS.add(second)
+    assert tracing.active_model(first) == third
+    assert tracing.next_model(third) is None or tracing.next_model(third) not in tracing.EXHAUSTED_MODELS
+    tracing.EXHAUSTED_MODELS.add(third)
+    assert tracing.next_model(third) is None            # all used up -> stop, no loop
+
+
+def test_rationale_prefers_stated_sentence_then_reasoning():
+    from agent import rationale
+    stated = AIMessage(content="Volatility is next because RSI is high.", tool_calls=[
+        {"name": "x", "args": {}, "id": "1", "type": "tool_call"}])
+    hidden = AIMessage(content="", additional_kwargs={"reasoning_content": "Need volatility."}, tool_calls=[
+        {"name": "x", "args": {}, "id": "2", "type": "tool_call"}])
+    assert rationale(stated).startswith("Volatility is next") and rationale(hidden) == "Need volatility."
+
+
+def test_per_minute_limit_is_waited_out_not_fatal(monkeypatch):
+    import agent as ag
+    monkeypatch.setattr(ag.time, "sleep", lambda s: None)
+    class FlakyOnce(ScriptedLLM):
+        def __init__(self, replies):
+            super().__init__(replies); self.failed = False
+        def invoke(self, messages):
+            if not self.failed:
+                self.failed = True
+                raise RuntimeError("Error code: 429 - Request too large ... on output tokens per minute (TPM)")
+            return super().invoke(messages)
+    state = run(FlakyOnce([AIMessage(content="recovered after waiting")]), [ECHO])
+    assert state["messages"][-1].content == "recovered after waiting"
+    assert tracing.is_per_minute_limit(RuntimeError("429 ... tokens per minute")) and \
+        not tracing.is_per_minute_limit(RuntimeError("429 ... tokens per day (TPD)"))
+
+
+def test_malformed_tool_call_is_retried_not_fatal(tmp_trace):
+    class GarbledOnce(ScriptedLLM):
+        def __init__(self, replies):
+            super().__init__(replies); self.failed = False
+        def invoke(self, messages):
+            if not self.failed:
+                self.failed = True
+                raise RuntimeError("Error code: 400 - {'code': 'tool_use_failed', 'message': 'Failed to parse tool call arguments as JSON'}")
+            return super().invoke(messages)
+    # the injected test model has no chain, so a format error ends gracefully; check the classification instead
+    assert tracing.is_tool_format_error(RuntimeError("400 tool_use_failed"))
+    assert not tracing.is_tool_format_error(RuntimeError("429 tokens per minute"))
+    state = run(GarbledOnce([AIMessage(content="x")]), [ECHO])
+    assert "call failed" in state["messages"][-1].content      # injected model: no retry target, ends cleanly

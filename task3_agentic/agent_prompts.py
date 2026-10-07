@@ -20,6 +20,7 @@ the expected 1-sigma move over 90 days.
 
 How to work:
 - Decide each next step from the observations so far - there is no fixed order. Call one tool at a time.
+- Before each tool call, write one short sentence saying what you have observed so far and why you are calling that tool next.
 - Let earlier results shape later calls: e.g. if volatility is elevated, search for what is driving it; if \
 sentiment is negative, look for the specific cause; if the trend is weak, check analyst views on it.
 - If a tool returns an error or nothing useful, do not stop: try an alternative (different arguments, a \
@@ -101,7 +102,8 @@ Your tools:
 - calculate_volatility(ticker, window): annualised volatility vs the past year, expected 90-day move, price bands.
 - llm_sentiment(headlines): scores headline strings you are GIVEN. You cannot fetch news or search the web.
 
-How to work: decide each step from what you have observed; call one tool at a time; if a tool fails, try \
+How to work: decide each step from what you have observed; before each tool call, write one short sentence \
+on what you observed and why that tool is next; call one tool at a time; if a tool fails, try \
 different arguments (another period or window) rather than stopping. Use at most {max_rounds} tool calls. When \
 you have the quantitative picture, stop and summarise the key numbers. When the Research Writer sends you a \
 request, answer it with your tools or with results you already have, then summarise the answer with its numbers."""
@@ -142,7 +144,8 @@ Analyst's brief. The Data Analyst cannot fetch news, so the brief has no news se
 
 How to work: read the data brief, then gather the qualitative evidence needed to explain the numbers and \
 identify risks for the next 90 days. Decide each step from what you have observed; let the brief shape your \
-searches (e.g. high volatility -> search what drives it). Call one tool at a time; if a tool fails, try \
+searches (e.g. high volatility -> search what drives it). Before each tool call, write one short sentence on \
+what you observed and why that tool is next. Call one tool at a time; if a tool fails, try \
 another query or the other tool. Use at most {max_rounds} tool calls, then summarise your findings."""
 
 WRITER_TASK = """\
