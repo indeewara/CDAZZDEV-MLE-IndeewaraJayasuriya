@@ -18,3 +18,8 @@ jinja2
 bitsandbytes>=0.45; platform_system == "Linux"
 rouge-score
 bert-score
+# Task 3 (agents) - pinned: these APIs change between releases
+langgraph==1.2.14
+langchain-groq==1.1.3
+langchain-core==1.6.7
+ddgs==9.16.0

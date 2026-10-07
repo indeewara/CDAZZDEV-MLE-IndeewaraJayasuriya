@@ -24,6 +24,7 @@ LOAD_IN_4BIT = True                 # QLoRA: frozen base weights in 4-bit, LoRA 
 BNB_4BIT_QUANT_TYPE = "nf4"         # NormalFloat4: optimal 4-bit grid for normally distributed weights (QLoRA paper)
 BNB_4BIT_DOUBLE_QUANT = True        # also quantize the quantization constants: ~0.4 bits/param saved, no quality loss
 COMPUTE_DTYPE = torch.float16       # T4 (Turing) has no bfloat16 support, so matmuls run in fp16
+QUANT_STORAGE = torch.uint8         # how packed 4-bit weights are stored; only matters for multi-GPU (FSDP) sharding
 
 # ---- LoRA ------------------------------------------------------------------------------
 LORA_R = 16
@@ -39,6 +40,17 @@ LORA_TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_
 # Why: all linear layers, attention and MLP. The QLoRA paper found adapting every linear layer is needed
 # to match full fine-tuning; format and taxonomy knowledge is not confined to attention.
 LORA_BIAS = "none"                  # biases stay frozen: standard for LoRA, keeps the merged model identical in shape
+USE_RSLORA = False
+# Why: rank-stabilised LoRA scales updates by alpha/sqrt(r) instead of alpha/r; it helps at high ranks (64+).
+# At r=16 the standard scaling is well-behaved and keeps the setup comparable to the QLoRA paper.
+USE_DORA = False
+# Why: DoRA adds a learned magnitude vector per layer - more memory and ~2x slower steps on a T4 - and is aimed
+# at closing the gap to full fine-tuning on harder tasks; plain LoRA is enough for format + taxonomy learning.
+INIT_LORA_WEIGHTS = True
+# Why: A random (Kaiming-uniform), B zero, so the adapter starts as an exact no-op and training begins from the
+# base model's behaviour (alternatives such as PiSSA/LoftQ initialise from the weights and change the start point).
+LORA_LAYERS = None                  # None = all 28 transformer layers: format and labelling behaviour spans the depth
+MODULES_TO_SAVE = None              # embeddings and LM head stay frozen: no new tokens are added, the vocabulary is unchanged
 
 # ---- Training --------------------------------------------------------------------------
 NUM_EPOCHS = 3
@@ -64,6 +76,17 @@ MAX_LENGTH = 1024
 OPTIMIZER = "paged_adamw_8bit"
 # Why: QLoRA's paged optimizer moves optimizer state to CPU RAM on memory spikes instead of crashing with
 # OOM; 8-bit states cut optimizer memory ~4x.
+ADAM_BETA1, ADAM_BETA2, ADAM_EPSILON = 0.9, 0.999, 1e-8
+# Why: the standard AdamW values used by the QLoRA paper. Adam's bias correction makes beta2=0.999 behave
+# sensibly even over only 30 steps, and nothing in a short LoRA run gives a reason to deviate.
+LABEL_SMOOTHING = 0.0
+# Why: the targets are exact JSON labels from a fixed set; smoothing would reward spreading probability onto
+# other tokens, which works against producing the one valid label and valid JSON.
+NEFTUNE_NOISE_ALPHA = None
+# Why: NEFTune adds noise to embeddings to make open-ended chat answers more varied. This task needs exact,
+# consistent structured output, so the noise would work against format fidelity. Off.
+TORCH_COMPILE = False               # compilation overhead exceeds its gain over 30 steps, and is fragile with 4-bit layers
+DATALOADER_DROP_LAST = False        # 149 is not a multiple of 4: keep the last short batch so every example is seen each epoch
 WEIGHT_DECAY = 0.0
 # Why: LoRA dropout already regularises, and decaying a zero-initialised adapter over 30 steps mostly
 # fights the learning signal.
@@ -90,7 +113,11 @@ HYPERPARAMETERS = {  # single source for the notebook's justification table
     "effective batch": PER_DEVICE_TRAIN_BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS, "max sequence length": MAX_LENGTH,
     "optimizer": OPTIMIZER, "weight decay": WEIGHT_DECAY, "max grad norm": MAX_GRAD_NORM,
     "gradient checkpointing": GRADIENT_CHECKPOINTING, "loss on": "assistant tokens only", "packing": PACKING,
-    "seed": SEED,
+    "seed": SEED, "rsLoRA": USE_RSLORA, "DoRA": USE_DORA, "LoRA init": "A random, B zero (no-op start)",
+    "LoRA layers": "all 28", "modules to save": "none (embeddings/LM head frozen)",
+    "Adam betas / epsilon": f"{ADAM_BETA1}, {ADAM_BETA2} / {ADAM_EPSILON}", "label smoothing": LABEL_SMOOTHING,
+    "NEFTune noise": "off", "torch.compile": TORCH_COMPILE, "drop last batch": DATALOADER_DROP_LAST,
+    "4-bit storage dtype": "uint8",
 }
 
 
@@ -110,13 +137,16 @@ def load_split(name: str, data_dir: Path = DATA_DIR) -> Dataset:
 def bnb_config():
     from transformers import BitsAndBytesConfig
     return BitsAndBytesConfig(load_in_4bit=LOAD_IN_4BIT, bnb_4bit_quant_type=BNB_4BIT_QUANT_TYPE,
-                              bnb_4bit_use_double_quant=BNB_4BIT_DOUBLE_QUANT, bnb_4bit_compute_dtype=COMPUTE_DTYPE)
+                              bnb_4bit_use_double_quant=BNB_4BIT_DOUBLE_QUANT, bnb_4bit_compute_dtype=COMPUTE_DTYPE,
+                              bnb_4bit_quant_storage=QUANT_STORAGE)
 
 
 def lora_config():
     from peft import LoraConfig
     return LoraConfig(r=LORA_R, lora_alpha=LORA_ALPHA, lora_dropout=LORA_DROPOUT, bias=LORA_BIAS,
-                      target_modules=LORA_TARGET_MODULES, task_type="CAUSAL_LM")
+                      target_modules=LORA_TARGET_MODULES, task_type="CAUSAL_LM", use_rslora=USE_RSLORA,
+                      use_dora=USE_DORA, init_lora_weights=INIT_LORA_WEIGHTS, layers_to_transform=LORA_LAYERS,
+                      modules_to_save=MODULES_TO_SAVE)
 
 
 def load_base(model_name: str = BASE_MODEL, quantize: bool = True):
@@ -139,6 +169,9 @@ def sft_config(output_dir: str, **overrides):
         per_device_train_batch_size=PER_DEVICE_TRAIN_BATCH_SIZE, per_device_eval_batch_size=PER_DEVICE_EVAL_BATCH_SIZE,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS, max_length=MAX_LENGTH, optim=OPTIMIZER,
         weight_decay=WEIGHT_DECAY, max_grad_norm=MAX_GRAD_NORM, gradient_checkpointing=GRADIENT_CHECKPOINTING,
+        adam_beta1=ADAM_BETA1, adam_beta2=ADAM_BETA2, adam_epsilon=ADAM_EPSILON,
+        label_smoothing_factor=LABEL_SMOOTHING, neftune_noise_alpha=NEFTUNE_NOISE_ALPHA,
+        torch_compile=TORCH_COMPILE, dataloader_drop_last=DATALOADER_DROP_LAST,
         gradient_checkpointing_kwargs={"use_reentrant": False},  # non-reentrant is required with PEFT adapters
         completion_only_loss=COMPLETION_ONLY_LOSS, packing=PACKING, seed=SEED,
         eval_strategy=EVAL_STRATEGY, save_strategy=SAVE_STRATEGY, logging_strategy=LOGGING_STRATEGY,

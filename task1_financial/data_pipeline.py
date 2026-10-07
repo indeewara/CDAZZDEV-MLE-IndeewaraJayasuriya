@@ -75,8 +75,10 @@ def fetch_ohlcv(ticker: str = DEFAULT_TICKER, years: int = HISTORY_YEARS) -> pd.
     if df.index.tz is not None:
         df.index = df.index.tz_localize(None)  # drop tz so date math/plots are simple
 
-    if len(df) < MIN_ANALYSIS_YEARS * TRADING_DAYS_PER_YEAR:
-        logger.warning("%s has only %d rows, under %d years of history", ticker, len(df), MIN_ANALYSIS_YEARS)
+    # warn only if clearly short of what was asked for (5% slack: a "year" is 250-253 trading days)
+    expected_years = min(years, MIN_ANALYSIS_YEARS)
+    if len(df) < expected_years * TRADING_DAYS_PER_YEAR * 0.95:
+        logger.warning("%s has only %d rows, under %d years of history", ticker, len(df), expected_years)
     return df
 
 
