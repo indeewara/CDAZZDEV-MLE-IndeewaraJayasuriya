@@ -16,10 +16,10 @@ fine-tuning something measurable to learn. Diversity was planned in code (balanc
 company, direction, magnitude and style) instead of left to the teacher. A blind second labeller filtered items whose
 text did not support their label (65% yield), and a grounding check rejected invented names and numbers. QLoRA
 trained Qwen2.5-1.5B with loss on assistant tokens only; the 600-token system prompt would otherwise dominate.
-Validation loss fell every epoch (0.945, 0.881, 0.862) while the train-validation gap began to widen, so three epochs
-was the right stop.
+Validation loss fell every epoch (0.945, 0.881, 0.862).
 
-<!-- TODO after the Colab evaluation: one sentence with ROUGE-L base -> fine-tuned, schema-valid %, and the manual hallucination rate. -->
+On the 18 held-out items, valid JSON rose from 0% to 100%, magnitude accuracy from 28% to 61% and ROUGE-L from
+0.19 to 0.24; the judge's "incorrect" verdicts fell from 22% to 0%.
 
 **Task 3:** an explicit LangGraph loop with one tool call per step makes every observe-decide cycle visible. Tools
 return errors instead of raising, so outages become observations: with `get_news` forced to fail, the agent switched
@@ -48,4 +48,3 @@ analysis, not just claimed.
 - An LLM-as-judge pass on Task 3 reports to check reasoning, and a step that cross-checks news against prices.
 - Use the fine-tuned Task 2 model as the event-analysis tool in Tasks 1 and 3, replacing headline-only sentiment.
 - Backtest the hedge recommendations and the Buy/Hold/Sell signal on historical data.
-- The RAG fallback bonus for Task 2.
